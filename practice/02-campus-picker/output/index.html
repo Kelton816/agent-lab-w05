@@ -120,10 +120,30 @@
       color: #ffffff;
       border-color: var(--primary);
     }
+    .checkbox-group {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px dashed var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      color: #334155;
+    }
+    .checkbox-group input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      accent-color: var(--primary);
+    }
+    .checkbox-group label {
+      cursor: pointer;
+      user-select: none;
+    }
     .action-buttons {
       display: flex;
       gap: 10px;
-      margin-top: 20px;
+      margin-top: 18px;
     }
     .btn {
       flex: 1;
@@ -151,6 +171,12 @@
     .btn-secondary:hover {
       background: #e2e8f0;
     }
+    .shortcut-hint {
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 10px;
+    }
     .result-section {
       min-height: 120px;
       display: flex;
@@ -163,10 +189,16 @@
       border-radius: var(--radius);
       padding: 18px;
       margin-bottom: 20px;
+      transition: all 0.2s ease;
     }
     .result-section.has-result {
       border: 2px solid #3b82f6;
       background: #eff6ff;
+      animation: popIn 0.25s ease-out;
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.96); opacity: 0.7; }
+      100% { transform: scale(1); opacity: 1; }
     }
     .result-badge {
       display: inline-block;
@@ -334,10 +366,19 @@
         </div>
       </div>
 
+      <!-- Improvement 1: Prevent consecutive duplicate toggle -->
+      <div class="checkbox-group">
+        <input type="checkbox" id="chk-no-repeat" checked>
+        <label for="chk-no-repeat" id="label-no-repeat">避免連續兩次抽到相同活動 (大於一項時生效)</label>
+      </div>
+
       <!-- Buttons -->
       <div class="action-buttons">
         <button class="btn btn-primary" id="btn-pick" onclick="pickActivity()">幫我選</button>
         <button class="btn btn-secondary" id="btn-reset" onclick="resetFilters()">重設篩選</button>
+      </div>
+      <div class="shortcut-hint" id="shortcut-hint">
+        ⌨️ 快捷鍵：按 <b>Space</b> 或 <b>Enter</b> 挑選，按 <b>Esc</b> 重設
       </div>
     </div>
 
@@ -463,6 +504,7 @@
     let currentLang = 'zh'; // 'zh' or 'en'
     let historyList = [];
     let currentResult = null; // currently displayed activity
+    let lastPickedId = null; // for duplicate prevention
 
     const i18n = {
       zh: {
@@ -481,8 +523,10 @@
         optEnergyAll: '不限',
         optEnergyLow: '低強度',
         optEnergyMedium: '中強度',
+        labelNoRepeat: '避免連續兩次抽到相同活動 (大於一項時生效)',
         btnPick: '幫我選',
         btnReset: '重設篩選',
+        shortcutHint: '⌨️ 快捷鍵：按 <b>Space</b> 或 <b>Enter</b> 挑選，按 <b>Esc</b> 重設',
         resultPlaceholder: '點擊上方「幫我選」開始挑選活動',
         noMatch: '沒有符合條件的活動',
         historyTitle: '最近成功抽選 (最新在前，最多5筆)',
@@ -510,8 +554,10 @@
         optEnergyAll: 'All',
         optEnergyLow: 'Low',
         optEnergyMedium: 'Medium',
+        labelNoRepeat: 'Avoid picking the same activity twice in a row (when >1 available)',
         btnPick: 'Pick for me',
         btnReset: 'Reset Filters',
+        shortcutHint: '⌨️ Shortcuts: Press <b>Space</b> or <b>Enter</b> to pick, <b>Esc</b> to reset',
         resultPlaceholder: 'Click "Pick for me" above to choose an activity',
         noMatch: 'No matching activities found',
         historyTitle: 'Recent Successful Picks (Latest first, max 5)',
@@ -543,8 +589,10 @@
       document.getElementById('opt-energy-all').textContent = t.optEnergyAll;
       document.getElementById('opt-energy-low').textContent = t.optEnergyLow;
       document.getElementById('opt-energy-medium').textContent = t.optEnergyMedium;
+      document.getElementById('label-no-repeat').textContent = t.labelNoRepeat;
       document.getElementById('btn-pick').textContent = t.btnPick;
       document.getElementById('btn-reset').textContent = t.btnReset;
+      document.getElementById('shortcut-hint').innerHTML = t.shortcutHint;
       document.getElementById('history-title').textContent = t.historyTitle;
       document.getElementById('btn-clear-history').textContent = t.btnClearHistory;
 
@@ -562,13 +610,14 @@
       const location = document.querySelector('input[name="location"]:checked').value;
       const time = parseInt(document.querySelector('input[name="time"]:checked').value, 10);
       const energy = document.querySelector('input[name="energy"]:checked').value;
-      return { location, time, energy };
+      const noRepeat = document.getElementById('chk-no-repeat').checked;
+      return { location, time, energy, noRepeat };
     }
 
     function pickActivity() {
-      const { location, time, energy } = getFilters();
+      const { location, time, energy, noRepeat } = getFilters();
 
-      const matched = activities.filter(act => {
+      let matched = activities.filter(act => {
         // Location filter
         if (location !== 'all' && act.location_type !== location) return false;
         // Time filter: minutes must not exceed selected time
@@ -581,8 +630,18 @@
       if (matched.length === 0) {
         currentResult = { matched: false };
       } else {
-        const randomIndex = Math.floor(Math.random() * matched.length);
-        const selected = matched[randomIndex];
+        // If noRepeat is enabled and we have > 1 candidates, exclude the last picked one
+        let candidates = matched;
+        if (noRepeat && matched.length > 1 && lastPickedId) {
+          const filtered = matched.filter(act => act.id !== lastPickedId);
+          if (filtered.length > 0) {
+            candidates = filtered;
+          }
+        }
+
+        const randomIndex = Math.floor(Math.random() * candidates.length);
+        const selected = candidates[randomIndex];
+        lastPickedId = selected.id;
         currentResult = { matched: true, activity: selected };
 
         // Add to history (newest at front, max 5)
@@ -656,13 +715,29 @@
       document.getElementById('loc-all').checked = true;
       document.getElementById('time-30').checked = true;
       document.getElementById('energy-all').checked = true;
+      document.getElementById('chk-no-repeat').checked = true;
       // Do not clear history!
     }
 
     function clearHistory() {
       historyList = [];
+      lastPickedId = null;
       renderHistory();
     }
+
+    // Keyboard Shortcuts
+    document.addEventListener('keydown', (e) => {
+      // Ignore if focus is in an input
+      if (e.target.tagName === 'INPUT' && e.target.type !== 'radio' && e.target.type !== 'checkbox') return;
+
+      if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        pickActivity();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        resetFilters();
+      }
+    });
 
     // Initialize
     updateLanguageUI();
