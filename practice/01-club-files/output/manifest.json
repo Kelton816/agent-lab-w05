@@ -1,0 +1,62 @@
+[
+  {
+    "source": "announcement.txt",
+    "destination": "announcements/announcement.txt",
+    "reason": "活動宣傳與通知資訊"
+  },
+  {
+    "source": "announcement_copy.txt",
+    "destination": "announcements/announcement_copy.txt",
+    "reason": "活動宣傳與通知資訊（與 announcement.txt 內容相同之副本）"
+  },
+  {
+    "source": "poster_text.txt",
+    "destination": "announcements/poster_text.txt",
+    "reason": "活動文宣與宣傳短語"
+  },
+  {
+    "source": "proposal_final.txt",
+    "destination": "proposals/proposal_final.txt",
+    "reason": "活動企畫第一版（戶外活動30分鐘，尚未定案）"
+  },
+  {
+    "source": "proposal_final2.txt",
+    "destination": "proposals/proposal_final2.txt",
+    "reason": "活動企畫第二版（室內活動20分鐘，仍待討論）"
+  },
+  {
+    "source": "rain_plan.txt",
+    "destination": "proposals/rain_plan.txt",
+    "reason": "雨天備案規劃"
+  },
+  {
+    "source": "meeting_notes.txt",
+    "destination": "planning_and_notes/meeting_notes.txt",
+    "reason": "社團幹部會議討論紀錄"
+  },
+  {
+    "source": "next_steps.txt",
+    "destination": "planning_and_notes/next_steps.txt",
+    "reason": "後續執行與比對兩版企畫之指引"
+  },
+  {
+    "source": "feedback_questions.txt",
+    "destination": "planning_and_notes/feedback_questions.txt",
+    "reason": "活動回饋問卷題目設計"
+  },
+  {
+    "source": "budget_draft.txt",
+    "destination": "resources_and_budget/budget_draft.txt",
+    "reason": "活動預算模擬草案"
+  },
+  {
+    "source": "equipment_list.txt",
+    "destination": "resources_and_budget/equipment_list.txt",
+    "reason": "活動所需器材清單"
+  },
+  {
+    "source": "equipment_backup.txt",
+    "destination": "resources_and_budget/equipment_backup.txt",
+    "reason": "活動器材備份清單（與 equipment_list.txt 內容相同之副本）"
+  }
+]
